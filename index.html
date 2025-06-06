@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Algoritmo CRC</title>
+  <style>
+    :root {
+      --primary-color: #9C8412;
+      --accent-color: #2c5234;
+      --background-color: #f9f9f9;
+      --card-bg: #ffffff;
+      --error-color: #e74c3c;
+      --font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+
+    body {
+      margin: 0;
+      font-family: var(--font-family);
+      background: var(--background-color);
+      color: var(--primary-color);
+    }
+
+    .container {
+      max-width: 480px;
+      margin: 40px auto;
+      padding: 25px;
+      background: var(--card-bg);
+      border-radius: 15px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+    }
+
+    h1 {
+      text-align: center;
+      color: var(--primary-color);
+      margin-bottom: 10px;
+    }
+
+    p.subtext {
+      text-align: center;
+      font-size: 0.9em;
+      color: #888;
+      margin-top: -10px;
+      margin-bottom: 20px;
+    }
+
+    label {
+      display: block;
+      margin-top: 15px;
+      font-weight: bold;
+      font-size: 0.95em;
+    }
+
+    input[type="text"] {
+      width: 100%;
+      padding: 10px;
+      margin-top: 6px;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+      font-family: monospace;
+      font-size: 1em;
+      transition: 0.2s;
+    }
+
+    input[type="text"]:focus {
+      border-color: var(--accent-color);
+      outline: none;
+      box-shadow: 0 0 0 2px rgba(39, 174, 96, 0.2);
+    }
+
+    button {
+      width: 100%;
+      margin-top: 25px;
+      padding: 14px;
+      background: var(--accent-color);
+      border: none;
+      color: white;
+      font-size: 1.1em;
+      font-weight: bold;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background 0.3s ease;
+    }
+
+    button:hover {
+      background: #1e8449;
+    }
+
+    .error {
+      margin-top: 15px;
+      color: var(--error-color);
+      font-weight: bold;
+      text-align: center;
+    }
+
+    .output {
+      margin-top: 30px;
+      background: #f1f7f4;
+      padding: 18px;
+      border-radius: 10px;
+      white-space: pre-wrap;
+      font-family: monospace;
+      font-size: 0.95em;
+      color: #2d3436;
+      overflow-x: auto;
+      box-shadow: inset 0 0 5px rgba(0,0,0,0.05);
+    }
+
+    @media (max-width: 600px) {
+      .container {
+        margin: 20px 10px;
+        padding: 20px;
+      }
+    }
+
+    .output-sections {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .output-box {
+      background: #f1f7f4;
+      padding: 18px;
+      border-radius: 10px;
+      font-family: monospace;
+      font-size: 0.95em;
+      color: #2d3436;
+      overflow-x: auto;
+      box-shadow: inset 0 0 5px rgba(0,0,0,0.05);
+      white-space: pre-wrap;
+    }
+
+    @media (min-width: 768px) {
+      .output-sections {
+        flex-direction: row;
+      }
+      .output-box {
+        flex: 1;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Algoritmo CRC</h1>
+    <p class="subtext">División módulo 2 para tramas binarias</p>
+
+    <label for="dataInput">🔹📡 Trama M(x) (16-24 bits):</label>
+    <input type="text" id="dataInput" placeholder="Ej. 1101011010111010" />
+
+    <label for="keyInput">⌨️ Polinomio G(x) (4-8 bits):</label>
+    <input type="text" id="keyInput" placeholder="Ej. 1011" />
+
+    <button onclick="encode()">🤖 Calcular</button>
+
+    <div class="error" id="errorMsg"></div>
+    <div class="output-sections">
+      <div class="output-box" id="summaryOutput"></div>
+      <div class="output-box" id="stepsOutput"></div>
+    </div>
+  </div>
+
+  <script>
+    function xor(a, b) {
+      let result = "";
+      for (let i = 1; i < b.length; i++) {
+        result += a[i] === b[i] ? '0' : '1';
+      }
+      return result;
+    }
+
+    function mod2div(dividend, divisor) {
+      let pick = divisor.length;
+      let tmp = dividend.slice(0, pick);
+      let steps = [];
+      let stepCounter = 1;
+
+      while (pick < dividend.length) {
+        let usedDivisor = tmp[0] === '1' ? divisor : '0'.repeat(divisor.length);
+        let result = xor(usedDivisor, tmp) + dividend[pick];
+
+        steps.push(`🔁 Paso ${stepCounter}:\n` +
+          `Bloque actual: ${tmp}\n` +
+          `Divisor usado: ${usedDivisor}\n` +
+          `Resultado XOR: ${result.slice(0, result.length - 1)}\n` +
+          `Próximo bit agregado: ${dividend[pick]}\n`);
+
+        tmp = result;
+        pick++;
+        stepCounter++;
+      }
+
+      let usedDivisor = tmp[0] === '1' ? divisor : '0'.repeat(divisor.length);
+      let result = xor(usedDivisor, tmp);
+      steps.push(`🔁 Paso ${stepCounter} (final):\n` +
+        `Bloque actual: ${tmp}\n` +
+        `Divisor usado: ${usedDivisor}\n` +
+        `Resultado XOR: ${result}\n`);
+
+      return { remainder: result, steps };
+    }
+
+    function encode() {
+      const data = document.getElementById("dataInput").value.trim();
+      const key = document.getElementById("keyInput").value.trim();
+      const summary = document.getElementById("summaryOutput");
+      const steps = document.getElementById("stepsOutput");
+      const error = document.getElementById("errorMsg");
+
+      summary.innerText = "";
+      steps.innerText = "";
+      error.innerText = "";
+
+      if (!/^[01]+$/.test(data) || !/^[01]+$/.test(key)) {
+        error.innerText = "❌ Solo se permiten números binarios (0 y 1)";
+        return;
+      }
+
+      if (data.length < 16 || data.length > 24) {
+        error.innerText = "❌ M(x) debe tener entre 16 y 24 bits.";
+        return;
+      }
+
+      if (key.length < 4 || key.length > 8) {
+        error.innerText = "❌ G(x) debe tener entre 4 y 8 bits.";
+        return;
+      }
+
+      if (key[0] !== '1' || key[key.length - 1] !== '1') {
+        error.innerText = "❌ G(x) debe comenzar y terminar con 1.";
+        return;
+      }
+
+      const r = key.length - 1;
+      const x_r_M = data + '0'.repeat(r);
+      const { remainder: R, steps: encodeSteps } = mod2div(x_r_M, key);
+
+      function binarySubtract(a, b) {
+        let result = "";
+        for (let i = 0; i < a.length; i++) {
+          result += a[i] === b[i] ? '0' : '1';
+        }
+        return result;
+      }
+
+      const T = binarySubtract(x_r_M, R.padStart(x_r_M.length, '0'));
+
+      let resumen = `📡 M(x): ${data}\n`;
+      resumen += `⌨️ G(x): ${key}\n`;
+      resumen += `📐 Grado del polinomio r: ${r}\n`;
+      resumen += `🔢 x^r * M(x): ${x_r_M}\n`;
+      resumen += `♻️ R(x): ${R}\n`;
+      resumen += `📨 T(x) = x^r * M(x) - R(x):\n${T}\n`;
+
+      let operaciones = `📘 Cálculo de R(x) (división de x^r * M(x)):\n\n${encodeSteps.join('\n')}\n`;
+
+      summary.innerText = resumen;
+      steps.innerText = operaciones;
+    }
+
+    function limitarEntradaBinaria(inputElement, maxLength) {
+      inputElement.addEventListener("keydown", (e) => {
+        const allowedKeys = ['0', '1', 'Backspace', 'Delete', 'ArrowLeft', 'ArrowRight', 'Tab'];
+        const isAllowedKey = allowedKeys.includes(e.key);
+
+        if ((e.key === '0' || e.key === '1') && 
+            inputElement.value.length >= maxLength &&
+            inputElement.selectionStart === inputElement.selectionEnd) {
+          e.preventDefault();
+          return;
+        }
+
+        if (!isAllowedKey) {
+          e.preventDefault();
+        }
+      });
+
+      inputElement.addEventListener("paste", (e) => {
+        e.preventDefault();
+        const pastedText = (e.clipboardData || window.clipboardData).getData("text");
+        const cleaned = pastedText.replace(/[^01]/g, "").slice(0, maxLength - inputElement.value.length);
+        const start = inputElement.selectionStart;
+        const end = inputElement.selectionEnd;
+        const current = inputElement.value;
+        const updated = current.slice(0, start) + cleaned + current.slice(end);
+        inputElement.value = updated.slice(0, maxLength);
+      });
+
+      inputElement.addEventListener("input", () => {
+        inputElement.value = inputElement.value.replace(/[^01]/g, "").slice(0, maxLength);
+      });
+    }
+
+    const dataInput = document.getElementById("dataInput");
+    const keyInput = document.getElementById("keyInput");
+
+    limitarEntradaBinaria(dataInput, 24);
+    limitarEntradaBinaria(keyInput, 8);
+  </script>
+</body>
+</html>
